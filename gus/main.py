@@ -129,7 +129,7 @@ def main():
     else:
         app.config['LOCAL'] = args.gitlab
 
-    app.run(debug=False, port=args.port)
+    app.run(debug=False, host='0.0.0.0', port=args.port)
 
 
 if __name__ == '__main__':
