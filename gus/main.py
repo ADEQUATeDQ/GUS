@@ -79,6 +79,7 @@ class HelloWorld(Resource):
         fork = project.forks.create({})
         f_id = fork.id
         f_project = gl.projects.get(f_id)
+        repo_name = f_project.path_with_namespace
 
         # create new file(s)
         f = f_project.files.create({'file_path': folder + '%2F' + filename,
@@ -88,6 +89,7 @@ class HelloWorld(Resource):
 
         # get supplementary file
         sup_file = request.files.get('sup')
+        sup_res_raw = None
         if sup_file:
             supname = request.form.get('supname')
             if not supname and sup_file.filename:
@@ -97,6 +99,7 @@ class HelloWorld(Resource):
                                       'branch': 'master',
                                       'content': sup_data,
                                       'commit_message': 'Created file ' + folder + '/' + supname})
+            sup_res_raw = git_url + repo_name + '/' + 'raw/master/' + folder + '/' + supname
 
         # get metadata file
         metadata = f_project.files.get(file_path='metadata.jsonld', ref='master')
@@ -104,7 +107,6 @@ class HelloWorld(Resource):
         g.parse(data=metadata.decode(), format='json-ld')
 
         # update metadata
-        repo_name = f_project.path_with_namespace
         dataset_ref = g.value(predicate=RDF.type, object=DCAT.Dataset)
         # add new resource
         git_res_page = git_url + repo_name + '/' + 'tree/master/' + folder + '/' + filename
@@ -128,7 +130,11 @@ class HelloWorld(Resource):
         metadata.content = g.serialize(format='json-ld')
         metadata.save(branch='master', commit_message='Updated metadata.jsonld')
 
-        return jsonify({'file': git_res_raw, 'project': git_url + repo_name})
+        # return URLs of created repo and files
+        res = {'file': git_res_raw, 'project': git_url + repo_name}
+        if sup_res_raw:
+            res['supfile'] = sup_res_raw
+        return jsonify(res)
 
 
 def main():
