@@ -23,7 +23,10 @@ api = Api(app)
 upload_parser = api.parser()
 upload_parser.add_argument('file', location='files',
                            type=FileStorage, required=True)
-upload_parser.add_argument('name', location='form')
+upload_parser.add_argument('filename', location='form')
+upload_parser.add_argument('sup', location='files',
+                           type=FileStorage, required=False)
+upload_parser.add_argument('supname', location='form', required=False)
 
 
 def external_prov(graph, folder):
@@ -40,7 +43,7 @@ def external_prov(graph, folder):
 
 
 @api.route('/update')
-@api.response(200, 'The requested dataset is available and was successfully returned.')
+@api.response(200, 'Project was forked, updated and the info successfully returned.')
 @api.response(404, 'Corresponding Gitlab project not found.')
 @api.expect(upload_parser)
 @api.doc(params={'original': 'URL of the original file', 'folder': 'folder under which new files and metadata.jsonld should be generated', 'token': 'Gitlab authenticfication token'})
@@ -55,10 +58,12 @@ class HelloWorld(Resource):
         # e.g. www_opendataportal_at/all_course_events_2016w/raw/master/cleaned/All_course-events_WS16
 
         uploaded_file = request.files['file']  # This is FileStorage instance
-        filename = request.form.get("name")
+        filename = request.form.get('filename')
         if not filename and uploaded_file.filename:
             filename = secure_filename(uploaded_file.filename)
         data = uploaded_file.read()
+
+
         # get project name and group
         url_parts = original.replace(git_url, '').split('/')
         group = url_parts[0]
@@ -81,6 +86,17 @@ class HelloWorld(Resource):
                                   'content': data,
                                   'commit_message': 'Created file ' + folder + '/' + filename})
 
+        # get supplementary file
+        sup_file = request.files.get('sup')
+        if sup_file:
+            supname = request.form.get('supname')
+            if not supname and sup_file.filename:
+                supname = secure_filename(sup_file.filename)
+            sup_data = sup_file.read()
+            f = f_project.files.create({'file_path': folder + '%2F' + supname,
+                                      'branch': 'master',
+                                      'content': sup_data,
+                                      'commit_message': 'Created file ' + folder + '/' + supname})
 
         # get metadata file
         metadata = f_project.files.get(file_path='metadata.jsonld', ref='master')
