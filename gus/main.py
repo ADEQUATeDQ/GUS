@@ -46,7 +46,7 @@ def external_prov(graph, folder):
 @api.response(200, 'Project was forked, updated and the info successfully returned.')
 @api.response(404, 'Corresponding Gitlab project not found.')
 @api.expect(upload_parser)
-@api.doc(params={'original': 'URL of the original file', 'folder': 'folder under which new files and metadata.jsonld should be generated', 'token': 'Gitlab authenticfication token'})
+@api.doc(params={'original': 'URL of the original file', 'folder': 'folder under which new files and metadata.jsonld should be generated', 'token': 'Gitlab OAuth token'})
 class HelloWorld(Resource):
     def post(self):
         git_url = app.config['GITLAB']
@@ -70,7 +70,7 @@ class HelloWorld(Resource):
         project_id = url_parts[1]
         orig_filename = url_parts[-1]
 
-        gl = gitlab.Gitlab(local_url, private_token=token)
+        gl = gitlab.Gitlab(local_url, oauth_token=token)
         # get the project by group/project_id
         p_id = group + '%2F' + project_id
         project = gl.projects.get(p_id)
